@@ -1,0 +1,287 @@
+
+from flask import Flask, request, redirect, render_template_string
+import sqlite3
+
+app = Flask(__name__)
+
+homepage_html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HealthyLife Hospital</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap');
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+    html, body {
+      height: 100%;
+      scroll-behavior: smooth;
+    }
+    body {
+      background: linear-gradient(to right, #f0f9ff, #cbebff);
+      color: #333;
+    }
+    header, footer {
+      background: #004e7c;
+      color: white;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    nav {
+      background: #007acc;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      padding: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 10px 15px;
+      border-radius: 6px;
+      transition: background 0.3s;
+    }
+    nav a:hover {
+      background: #005f99;
+    }
+    .hero {
+      background: linear-gradient(to right, #004e7c88, #007acc88), url('https://source.unsplash.com/1600x900/?hospital') center/cover no-repeat;
+      height: 350px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: white;
+      padding: 0 20px;
+      animation: fadeInZoom 1.5s ease-in-out;
+    }
+    .hero h1 {
+      font-size: 3.2rem;
+      font-weight: 700;
+      text-shadow: 1px 1px 4px #000;
+    }
+    @keyframes fadeInZoom {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .container {
+      max-width: 1100px;
+      margin: 50px auto;
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      color: #004e7c;
+      margin-bottom: 20px;
+    }
+    .features {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+      margin-top: 30px;
+    }
+    .feature-box {
+      background: #f5fbff;
+      border: 1px solid #e1f0ff;
+      padding: 25px;
+      border-radius: 12px;
+      width: 300px;
+      text-align: center;
+      transition: transform 0.3s ease;
+    }
+    .feature-box:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    }
+    .feature-box img {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    form input, form textarea {
+      width: 100%;
+      padding: 12px;
+      margin: 12px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    form button {
+      background-color: #007acc;
+      color: white;
+      padding: 12px 25px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    form button:hover {
+      background-color: #005f99;
+    }
+    footer {
+      margin-top: 60px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h2>HealthyLife Hospital</h2>
+    <p>Committed to Caring and Excellence</p>
+  </header>
+  <nav>
+    <a href="#">Home</a>
+    <a href="#services">Services</a>
+    <a href="#departments">Departments</a>
+    <a href="#contact">Contact</a>
+    <a href="#login">Patient Login</a>
+  </nav>
+  <div class="hero">
+    <h1>Welcome to HealthyLife</h1>
+  </div>
+  <section id="login" class="container">
+    <h2>Patient Login</h2>
+    <form method="POST" action="/login">
+      <input type="text" name="username" placeholder="Username" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <button type="submit">Login</button>
+    </form>
+  </section>
+  <section id="appointment" class="container">
+    <h2>Book an Appointment</h2>
+    <form method="POST" action="/book">
+      <input type="text" name="full_name" placeholder="Full Name" required>
+      <input type="email" name="email" placeholder="Email" required>
+      <input type="date" name="date" required>
+      <input type="time" name="time" required>
+      <textarea name="reason" placeholder="Reason for appointment" required></textarea>
+      <button type="submit">Submit</button>
+    </form>
+  </section>
+  <section class="container">
+    <h2>About Us</h2>
+    <p>HealthyLife Hospital is a state-of-the-art medical facility dedicated to providing high-quality healthcare services to our community. We offer emergency treatment, outpatient services, and specialized departments with a patient-first philosophy.</p>
+    <div class="features">
+      <div class="feature-box">
+        <h3>Our Mission</h3>
+        <p>To deliver compassionate healthcare and enhance lives through innovation, excellence, and dedication.</p>
+      </div>
+      <div class="feature-box">
+        <h3>Our Vision</h3>
+        <p>To be a leading healthcare provider known for integrity, quality care, and groundbreaking medical practices.</p>
+      </div>
+      <div class="feature-box">
+        <h3>Our Values</h3>
+        <p>Integrity, Excellence, Compassion, Accountability, and Respect guide all we do at HealthyLife.</p>
+      </div>
+    </div>
+    <div class="features">
+      <div class="feature-box">
+        <img src="https://source.unsplash.com/200x200/?doctor" alt="Doctor">
+        <h3>Dr. Theophilus Okyere</h3>
+        <p>Chief Medical Officer</p>
+      </div>
+      <div class="feature-box">
+        <img src="https://source.unsplash.com/200x200/?nurse" alt="Nurse">
+        <h3>Nurse Emmanuel Opoku</h3>
+        <p>Senior Registered Nurse</p>
+      </div>
+      <div class="feature-box">
+        <img src="https://source.unsplash.com/200x200/?healthcare,staff" alt="Staff">
+        <h3>Ms. Abiba Musah</h3>
+        <p>Patient Care Coordinator</p>
+      </div>
+    </div>
+    <h2>Patient Reviews</h2>
+    <div class="features">
+      <div class="feature-box">
+        <p><strong>Olajuwon Abatty:</strong> “The care I received at HealthyLife was truly outstanding. From check-in to discharge, the staff treated me with respect and kindness.”</p>
+      </div>
+      <div class="feature-box">
+        <p><strong>Josue:</strong> “Clean facilities, knowledgeable doctors, and warm-hearted nurses. I wouldn’t trust my health with anyone else.”</p>
+      </div>
+    </div>
+  </section>
+  <footer>
+    &copy; 2025 HealthyLife Hospital. All Rights Reserved.
+  </footer>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const hour = new Date().getHours();
+      const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+      const heroHeading = document.querySelector('.hero h1');
+      if (heroHeading) {
+        heroHeading.innerText = `${greeting}, Welcome to HealthyLife`;
+      }
+    });
+  </script>
+</body>
+</html>
+"""
+
+def init_db():
+    with sqlite3.connect('hospital.db') as conn:
+        c = conn.cursor()
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS patients (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT,
+                password TEXT
+            )
+        ''')
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS appointments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                full_name TEXT,
+                email TEXT,
+                date TEXT,
+                time TEXT,
+                reason TEXT
+            )
+        ''')
+        conn.commit()
+
+@app.route('/')
+def home():
+    return render_template_string(homepage_html)
+
+@app.route('/login', methods=['POST'])
+def login():
+    username = request.form['username']
+    password = request.form['password']
+    with sqlite3.connect('hospital.db') as conn:
+        c = conn.cursor()
+        c.execute("INSERT INTO patients (username, password) VALUES (?, ?)", (username, password))
+        conn.commit()
+    return redirect('/')
+
+@app.route('/book', methods=['POST'])
+def book():
+    full_name = request.form['full_name']
+    email = request.form['email']
+    date = request.form['date']
+    time = request.form['time']
+    reason = request.form['reason']
+    with sqlite3.connect('hospital.db') as conn:
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO appointments (full_name, email, date, time, reason)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (full_name, email, date, time, reason))
+        conn.commit()
+    return redirect('/')
+
+if __name__ == '__main__':
+    init_db()
+    app.run(debug=True)
